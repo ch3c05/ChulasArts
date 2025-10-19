@@ -3,9 +3,9 @@ import './styles/global.css';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import AlbumView from './pages/AlbumView';
 
 // Placeholder components - will be implemented in user stories
-const AlbumView = () => <div>Album View (TODO)</div>;
 const ProfilePage = () => <div>Profile Page (TODO)</div>;
 const GalleryPage = () => <div>Gallery Page (TODO)</div>;
 
