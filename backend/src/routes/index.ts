@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import authRoutes from './auth.js';
 import albumRoutes from './albums.js';
+import photoRoutes from './photos.js';
 
 const router = Router();
 
@@ -20,13 +21,12 @@ router.get('/health', (_req, res) => {
 // Mount route modules
 router.use('/auth', authRoutes);
 router.use('/albums', albumRoutes);
+router.use('/', photoRoutes); // Photo routes include /albums/:id/photos and /photos/:id
 
 // TODO: Import and mount remaining route modules as they are implemented
-// import photoRoutes from './photos.js';
 // import userRoutes from './users.js';
 // import galleryRoutes from './gallery.js';
 
-// router.use('/photos', photoRoutes);
 // router.use('/users', userRoutes);
 // router.use('/gallery', galleryRoutes);
 
