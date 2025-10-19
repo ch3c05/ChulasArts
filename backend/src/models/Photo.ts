@@ -31,6 +31,7 @@ export interface IPhoto extends Document {
   aperture?: string;
   shutterSpeed?: string;
   iso?: number;
+  sortOrder: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -146,6 +147,10 @@ const photoSchema = new Schema<IPhoto>(
     iso: {
       type: Number,
       min: 0,
+    },
+    sortOrder: {
+      type: Number,
+      default: 0,
     },
   },
   {
