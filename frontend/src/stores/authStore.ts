@@ -39,10 +39,7 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           const response = await apiClient.post('/auth/login', credentials);
-          const { user, accessToken } = response.data.data;
-
-          // Store token in localStorage
-          localStorage.setItem('accessToken', accessToken);
+          const user = response.data; // User data returned directly, tokens in httpOnly cookies
 
           set({
             user,
@@ -68,10 +65,7 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           const response = await apiClient.post('/auth/signup', data);
-          const { user, accessToken } = response.data.data;
-
-          // Store token in localStorage
-          localStorage.setItem('accessToken', accessToken);
+          const user = response.data; // User data returned directly, tokens in httpOnly cookies
 
           set({
             user,
@@ -98,9 +92,6 @@ export const useAuthStore = create<AuthState>()(
         try {
           await apiClient.post('/auth/logout');
 
-          // Clear token from localStorage
-          localStorage.removeItem('accessToken');
-
           set({
             user: null,
             isAuthenticated: false,
@@ -111,7 +102,6 @@ export const useAuthStore = create<AuthState>()(
           set({ error: errorMessage, isLoading: false });
 
           // Still clear local state even if API call fails
-          localStorage.removeItem('accessToken');
           set({ user: null, isAuthenticated: false });
         }
       },
@@ -124,7 +114,7 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           const response = await apiClient.get('/auth/me');
-          const user = response.data.data;
+          const user = response.data;
 
           set({
             user,

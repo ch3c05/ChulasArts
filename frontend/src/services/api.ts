@@ -19,17 +19,11 @@ export const apiClient: AxiosInstance = axios.create({
 });
 
 /**
- * Request interceptor - Add auth token to requests
+ * Request interceptor - No need to add tokens manually, httpOnly cookies are sent automatically
  */
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Get token from localStorage
-    const token = localStorage.getItem('accessToken');
-
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
+    // Cookies are sent automatically with withCredentials: true
     return config;
   },
   (error: AxiosError) => {
@@ -52,27 +46,13 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Try to refresh token
-        const response = await axios.post(
-          `${API_BASE_URL}/auth/refresh`,
-          {},
-          { withCredentials: true }
-        );
+        // Try to refresh token (cookies are sent automatically)
+        await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
 
-        const { accessToken } = response.data.data;
-
-        // Store new token
-        localStorage.setItem('accessToken', accessToken);
-
-        // Retry original request with new token
-        if (originalRequest.headers) {
-          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        }
-
+        // Retry original request (new token cookie is now set)
         return apiClient(originalRequest);
       } catch (refreshError) {
-        // Refresh failed - clear tokens and redirect to login
-        localStorage.removeItem('accessToken');
+        // Refresh failed - redirect to login
         window.location.href = '/login';
         return Promise.reject(refreshError);
       }

@@ -1,11 +1,10 @@
-import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './styles/global.css';
+import Dashboard from './pages/Dashboard';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
 
 // Placeholder components - will be implemented in user stories
-const LoginPage = () => <div>Login Page (TODO)</div>;
-const SignupPage = () => <div>Signup Page (TODO)</div>;
-const Dashboard = () => <div>Dashboard (TODO)</div>;
 const AlbumView = () => <div>Album View (TODO)</div>;
 const ProfilePage = () => <div>Profile Page (TODO)</div>;
 const GalleryPage = () => <div>Gallery Page (TODO)</div>;
@@ -15,8 +14,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Public routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="/gallery" element={<GalleryPage />} />
 
         {/* Protected routes */}
