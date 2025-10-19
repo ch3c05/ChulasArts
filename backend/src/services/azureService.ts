@@ -20,10 +20,7 @@ function getAzureBlobClient(): BlobServiceClient {
     return blobServiceClient;
   }
 
-  if (
-    !AZURE_STORAGE_CONNECTION_STRING ||
-    AZURE_STORAGE_CONNECTION_STRING.includes('your-account')
-  ) {
+  if (!AZURE_STORAGE_CONNECTION_STRING) {
     throw new InternalServerError(
       'Azure Storage credentials not configured. Please set AZURE_STORAGE_CONNECTION_STRING in .env'
     );
