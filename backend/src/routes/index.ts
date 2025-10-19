@@ -4,6 +4,7 @@
  */
 
 import { Router } from 'express';
+import authRoutes from './auth.js';
 import albumRoutes from './albums.js';
 
 const router = Router();
@@ -17,15 +18,14 @@ router.get('/health', (_req, res) => {
 });
 
 // Mount route modules
+router.use('/auth', authRoutes);
 router.use('/albums', albumRoutes);
 
 // TODO: Import and mount remaining route modules as they are implemented
-// import authRoutes from './auth.js';
 // import photoRoutes from './photos.js';
 // import userRoutes from './users.js';
 // import galleryRoutes from './gallery.js';
 
-// router.use('/auth', authRoutes);
 // router.use('/photos', photoRoutes);
 // router.use('/users', userRoutes);
 // router.use('/gallery', galleryRoutes);

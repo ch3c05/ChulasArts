@@ -31,9 +31,9 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     // Try to get token from Authorization header
     let token = extractTokenFromHeader(req.headers.authorization);
 
-    // Fallback to cookie if no header token
-    if (!token && req.cookies?.token) {
-      token = req.cookies.token;
+    // Fallback to accessToken cookie if no header token
+    if (!token && req.cookies?.accessToken) {
+      token = req.cookies.accessToken;
     }
 
     if (!token) {
@@ -74,9 +74,9 @@ export async function optionalAuthenticate(
     // Try to get token from Authorization header
     let token = extractTokenFromHeader(req.headers.authorization);
 
-    // Fallback to cookie if no header token
-    if (!token && req.cookies?.token) {
-      token = req.cookies.token;
+    // Fallback to accessToken cookie if no header token
+    if (!token && req.cookies?.accessToken) {
+      token = req.cookies.accessToken;
     }
 
     // If no token, just continue without user info

@@ -9,21 +9,11 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export interface IUser extends Document {
   _id: mongoose.Types.ObjectId;
   email: string;
-  passwordHash: string;
-  username: string;
-  displayName: string;
-  bio?: string;
-  profilePictureUrl?: string;
-  websiteUrl?: string;
-  socialLinks?: {
-    instagram?: string;
-    twitter?: string;
-    facebook?: string;
-  };
+  password: string;
+  name: string;
+  bio: string;
+  avatarUrl: string;
   albumCount: number;
-  photoCount: number;
-  followerCount: number;
-  followingCount: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,59 +28,28 @@ const userSchema = new Schema<IUser>(
       trim: true,
       index: true,
     },
-    passwordHash: {
+    password: {
       type: String,
       required: true,
       select: false, // Don't include in queries by default
     },
-    username: {
-      type: String,
-      required: true,
-      unique: true,
-      lowercase: true,
-      trim: true,
-      minlength: 3,
-      maxlength: 30,
-      match: /^[a-z0-9_-]+$/,
-    },
-    displayName: {
+    name: {
       type: String,
       required: true,
       trim: true,
+      minlength: 2,
       maxlength: 100,
     },
     bio: {
       type: String,
-      maxlength: 500,
+      default: '',
+      maxlength: 1000,
     },
-    profilePictureUrl: {
+    avatarUrl: {
       type: String,
-    },
-    websiteUrl: {
-      type: String,
-      maxlength: 200,
-    },
-    socialLinks: {
-      instagram: String,
-      twitter: String,
-      facebook: String,
+      default: '',
     },
     albumCount: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    photoCount: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    followerCount: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    followingCount: {
       type: Number,
       default: 0,
       min: 0,
@@ -99,9 +58,9 @@ const userSchema = new Schema<IUser>(
   {
     timestamps: true,
     toJSON: {
-      transform: (_doc, ret) => {
+      transform: (_doc, ret: any) => {
         ret._id = ret._id.toString();
-        delete ret.passwordHash;
+        delete ret.password;
         delete ret.__v;
         return ret;
       },
@@ -111,7 +70,6 @@ const userSchema = new Schema<IUser>(
 
 // Indexes
 userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ username: 1 }, { unique: true });
 userSchema.index({ createdAt: -1 });
 
 export const User: Model<IUser> = mongoose.model<IUser>('User', userSchema);
