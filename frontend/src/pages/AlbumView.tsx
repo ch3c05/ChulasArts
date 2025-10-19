@@ -6,13 +6,17 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAlbumStore } from '../stores/albumStore';
+import { usePhotoStore } from '../stores/photoStore';
 import { useAuth } from '../hooks/useAuth';
+import { PhotoUpload } from '../components/Photo/PhotoUpload';
+import { PhotoGrid } from '../components/Photo/PhotoGrid';
 
 export default function AlbumView() {
   const { albumId } = useParams<{ albumId: string }>();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { currentAlbum, isLoading, error, fetchAlbum, updateAlbum, deleteAlbum } = useAlbumStore();
+  const { photos, fetchAlbumPhotos } = usePhotoStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
@@ -21,8 +25,9 @@ export default function AlbumView() {
   useEffect(() => {
     if (albumId) {
       fetchAlbum(albumId);
+      fetchAlbumPhotos(albumId);
     }
-  }, [albumId, fetchAlbum]);
+  }, [albumId, fetchAlbum, fetchAlbumPhotos]);
 
   useEffect(() => {
     if (currentAlbum) {
@@ -234,71 +239,30 @@ export default function AlbumView() {
       </div>
 
       {/* Photo Upload Section (Owner only) */}
-      {isOwner && (
-        <div
-          style={{
-            padding: '40px',
-            border: '2px dashed #ccc',
-            borderRadius: '8px',
-            textAlign: 'center',
-            marginBottom: '30px',
-            backgroundColor: '#f9f9f9',
+      {isOwner && albumId && (
+        <PhotoUpload
+          albumId={albumId}
+          onUploadComplete={() => {
+            fetchAlbum(albumId);
+            fetchAlbumPhotos(albumId);
           }}
-        >
-          <p style={{ fontSize: '18px', color: '#666', marginBottom: '10px' }}>
-            📸 Photo Upload Coming Soon
-          </p>
-          <p style={{ color: '#999' }}>
-            Upload photos by dragging & dropping or clicking to browse
-          </p>
-        </div>
+        />
       )}
 
       {/* Photo Grid */}
-      <div>
-        <h2 style={{ fontSize: '24px', marginBottom: '20px' }}>Photos</h2>
-
-        {currentAlbum.photoCount === 0 ? (
-          <div
-            style={{
-              padding: '60px',
-              textAlign: 'center',
-              color: '#999',
-              border: '1px solid #eee',
-              borderRadius: '8px',
-            }}
-          >
-            <p style={{ fontSize: '18px' }}>No photos in this album yet</p>
-            {isOwner && <p>Upload your first photo to get started</p>}
-          </div>
-        ) : (
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-              gap: '20px',
-            }}
-          >
-            {/* Placeholder photo cards */}
-            {Array.from({ length: currentAlbum.photoCount }).map((_, i) => (
-              <div
-                key={i}
-                style={{
-                  aspectRatio: '1',
-                  backgroundColor: '#f0f0f0',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#999',
-                }}
-              >
-                Photo {i + 1}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <PhotoGrid
+        photos={photos}
+        isOwner={!!isOwner}
+        onPhotoClick={(photo) => {
+          console.log('Photo clicked:', photo);
+          // TODO: Open photo detail modal/page
+        }}
+        onPhotoDelete={() => {
+          if (albumId) {
+            fetchAlbum(albumId);
+          }
+        }}
+      />
     </div>
   );
 }
