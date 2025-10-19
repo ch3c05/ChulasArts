@@ -4,26 +4,28 @@
  */
 
 import { Router } from 'express';
+import albumRoutes from './albums.js';
 
 const router = Router();
 
 // Health check endpoint
-router.get('/health', (req, res) => {
+router.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
   });
 });
 
-// TODO: Import and mount route modules as they are implemented
+// Mount route modules
+router.use('/albums', albumRoutes);
+
+// TODO: Import and mount remaining route modules as they are implemented
 // import authRoutes from './auth.js';
-// import albumRoutes from './albums.js';
 // import photoRoutes from './photos.js';
 // import userRoutes from './users.js';
 // import galleryRoutes from './gallery.js';
 
 // router.use('/auth', authRoutes);
-// router.use('/albums', albumRoutes);
 // router.use('/photos', photoRoutes);
 // router.use('/users', userRoutes);
 // router.use('/gallery', galleryRoutes);
