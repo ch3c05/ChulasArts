@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { createIndexes } from './indexes.js';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/chulasarts_dev';
 
@@ -6,9 +7,10 @@ export const connectDatabase = async (): Promise<void> => {
   try {
     await mongoose.connect(MONGODB_URI);
     console.log('✅ MongoDB connected successfully');
-    
-    // Create indexes
+
+    // Create indexes after connection
     await createIndexes();
+    console.log('✅ MongoDB indexes created successfully');
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
     process.exit(1);
@@ -22,11 +24,6 @@ export const disconnectDatabase = async (): Promise<void> => {
   } catch (error) {
     console.error('❌ MongoDB disconnection error:', error);
   }
-};
-
-const createIndexes = async (): Promise<void> => {
-  // Indexes will be created when models are registered
-  console.log('📊 Database indexes will be created when models are initialized');
 };
 
 // Handle connection events

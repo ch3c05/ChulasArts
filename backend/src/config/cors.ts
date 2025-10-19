@@ -23,3 +23,5 @@ export const corsOptions: cors.CorsOptions = {
   exposedHeaders: ['Set-Cookie'],
   maxAge: 86400, // 24 hours
 };
+
+export const corsMiddleware = cors(corsOptions);
