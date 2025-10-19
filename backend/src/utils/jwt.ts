@@ -5,16 +5,16 @@
  * Used for user authentication and session management
  */
 
-import * as jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { UnauthorizedError } from './errors.js';
 
 if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
   throw new Error('JWT_SECRET must be defined in production');
 }
 
-const JWT_SECRET: string = process.env.JWT_SECRET || 'dev-secret-change-in-production';
-const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '7d';
-const JWT_REFRESH_EXPIRES_IN: string = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
 export interface JwtPayload {
   userId: string;
@@ -35,6 +35,7 @@ export function generateAccessToken(userId: string, email: string): string {
     type: 'access',
   };
 
+  // @ts-expect-error - TypeScript has issues with string literal inference for expiresIn
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
   });
@@ -53,6 +54,7 @@ export function generateRefreshToken(userId: string, email: string): string {
     type: 'refresh',
   };
 
+  // @ts-expect-error - TypeScript has issues with string literal inference for expiresIn
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: JWT_REFRESH_EXPIRES_IN,
   });
