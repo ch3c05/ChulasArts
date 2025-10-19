@@ -1,0 +1,391 @@
+openapi: 3.0.3
+info:
+  title: Art Portfolio - Albums & Photos API
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3000/api
+
+paths:
+  /albums:
+    get:
+      summary: List user's albums
+      tags: [Albums]
+      security: [cookieAuth: []]
+      parameters:
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [date, sortOrder]
+            default: date
+      responses:
+        '200':
+          description: Albums list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Album'
+    
+    post:
+      summary: Create new album
+      tags: [Albums]
+      security: [cookieAuth: []]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, date]
+              properties:
+                title: {type: string, minLength: 1, maxLength: 200}
+                description: {type: string, maxLength: 2000}
+                date: {type: string, format: date}
+      responses:
+        '201':
+          description: Album created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Album'
+
+  /albums/{albumId}:
+    get:
+      summary: Get album details
+      tags: [Albums]
+      security: [cookieAuth: []]
+      parameters:
+        - name: albumId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Album'
+    
+    patch:
+      summary: Update album
+      tags: [Albums]
+      security: [cookieAuth: []]
+      parameters:
+        - name: albumId
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: {type: string}
+                description: {type: string}
+                date: {type: string, format: date}
+                sortOrder: {type: number}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Album'
+    
+    delete:
+      summary: Delete album
+      tags: [Albums]
+      security: [cookieAuth: []]
+      parameters:
+        - name: albumId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '204':
+          description: Album deleted
+
+  /albums/{albumId}/photos:
+    get:
+      summary: List photos in album
+      tags: [Photos]
+      security: [cookieAuth: []]
+      parameters:
+        - name: albumId
+          in: path
+          required: true
+          schema: {type: string}
+        - name: page
+          in: query
+          schema: {type: integer, minimum: 1, default: 1}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 24}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  photos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Photo'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+    
+    post:
+      summary: Upload photo to album
+      tags: [Photos]
+      security: [cookieAuth: []]
+      parameters:
+        - name: albumId
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title:
+                  type: string
+                description:
+                  type: string
+                tags:
+                  type: array
+                  items: {type: string}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Photo'
+
+  /photos/{photoId}:
+    get:
+      summary: Get photo details
+      tags: [Photos]
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Photo'
+    
+    patch:
+      summary: Update photo metadata
+      tags: [Photos]
+      security: [cookieAuth: []]
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema: {type: string}
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: {type: string}
+                description: {type: string}
+                tags: {type: array, items: {type: string}}
+                published: {type: boolean}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Photo'
+    
+    delete:
+      summary: Delete photo
+      tags: [Photos]
+      security: [cookieAuth: []]
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '204':
+          description: Photo deleted
+
+  /photos/{photoId}/like:
+    post:
+      summary: Like photo
+      tags: [Social]
+      security: [cookieAuth: []]
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  likeCount: {type: integer}
+    
+    delete:
+      summary: Unlike photo
+      tags: [Social]
+      security: [cookieAuth: []]
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '204':
+          description: Like removed
+
+  /photos/{photoId}/bookmark:
+    post:
+      summary: Bookmark photo
+      tags: [Social]
+      security: [cookieAuth: []]
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bookmarkCount: {type: integer}
+    
+    delete:
+      summary: Remove bookmark
+      tags: [Social]
+      security: [cookieAuth: []]
+      parameters:
+        - name: photoId
+          in: path
+          required: true
+          schema: {type: string}
+      responses:
+        '204':
+          description: Bookmark removed
+
+  /gallery:
+    get:
+      summary: Browse public gallery
+      tags: [Gallery]
+      parameters:
+        - name: page
+          in: query
+          schema: {type: integer, minimum: 1, default: 1}
+        - name: limit
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 24}
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [recent, popular]
+            default: recent
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  photos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/GalleryPhoto'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: accessToken
+
+  schemas:
+    Album:
+      type: object
+      properties:
+        id: {type: string}
+        userId: {type: string}
+        title: {type: string}
+        description: {type: string}
+        date: {type: string, format: date}
+        sortOrder: {type: number}
+        photoCount: {type: integer}
+        coverPhotoId: {type: string}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+
+    Photo:
+      type: object
+      properties:
+        id: {type: string}
+        albumId: {type: string}
+        userId: {type: string}
+        title: {type: string}
+        description: {type: string}
+        tags: {type: array, items: {type: string}}
+        blobUrl: {type: string, format: uri}
+        thumbnailUrl: {type: string, format: uri}
+        mediumUrl: {type: string, format: uri}
+        dimensions:
+          type: object
+          properties:
+            width: {type: integer}
+            height: {type: integer}
+        fileSize: {type: integer}
+        mimeType: {type: string}
+        published: {type: boolean}
+        likeCount: {type: integer}
+        bookmarkCount: {type: integer}
+        isLiked: {type: boolean}
+        isBookmarked: {type: boolean}
+        createdAt: {type: string, format: date-time}
+
+    GalleryPhoto:
+      allOf:
+        - $ref: '#/components/schemas/Photo'
+        - type: object
+          properties:
+            artist:
+              type: object
+              properties:
+                id: {type: string}
+                name: {type: string}
+                avatarUrl: {type: string}
+
+    Pagination:
+      type: object
+      properties:
+        page: {type: integer}
+        limit: {type: integer}
+        total: {type: integer}
+        totalPages: {type: integer}

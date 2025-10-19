@@ -1,0 +1,289 @@
+openapi: 3.0.3
+info:
+  title: Art Portfolio - Auth API
+  version: 1.0.0
+  description: Authentication and user management endpoints
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://api.artportfolio.com
+    description: Production server
+
+paths:
+  /auth/signup:
+    post:
+      summary: Create new user account
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, name]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  maxLength: 255
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  maxLength: 100
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+      responses:
+        '201':
+          description: User created successfully
+          headers:
+            Set-Cookie:
+              description: httpOnly cookies for access and refresh tokens
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      summary: Login to existing account
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: httpOnly cookies for access and refresh tokens
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/logout:
+    post:
+      summary: Logout current session
+      tags: [Auth]
+      security:
+        - cookieAuth: []
+      responses:
+        '204':
+          description: Logout successful
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/me:
+    get:
+      summary: Get current user profile
+      tags: [Auth]
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      tags: [Auth]
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Token refreshed
+          headers:
+            Set-Cookie:
+              description: New access token cookie
+              schema:
+                type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /users/{userId}:
+    get:
+      summary: Get user profile by ID
+      tags: [Users]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUserResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      summary: Update user profile
+      tags: [Users]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{24}$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 100
+                bio:
+                  type: string
+                  maxLength: 1000
+                avatarUrl:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: accessToken
+
+  schemas:
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        bio:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+
+    PublicUserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^[0-9a-fA-F]{24}$'
+        name:
+          type: string
+        bio:
+          type: string
+        avatarUrl:
+          type: string
+          format: uri
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+
+  responses:
+    BadRequest:
+      description: Invalid request data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
