@@ -94,7 +94,6 @@ const photoSchema = new Schema<IPhoto>(
     tags: {
       type: [String],
       default: [],
-      index: true,
     },
     published: {
       type: Boolean,
@@ -156,10 +155,16 @@ const photoSchema = new Schema<IPhoto>(
   {
     timestamps: true,
     toJSON: {
-      transform: (_doc, ret) => {
-        ret._id = ret._id.toString();
-        ret.albumId = ret.albumId.toString();
-        ret.userId = ret.userId.toString();
+      transform: (_doc, ret: Record<string, unknown>) => {
+        if (ret._id && typeof ret._id !== 'string') {
+          ret._id = (ret._id as mongoose.Types.ObjectId).toString();
+        }
+        if (ret.albumId && typeof ret.albumId !== 'object') {
+          ret.albumId = (ret.albumId as mongoose.Types.ObjectId).toString();
+        }
+        if (ret.userId && typeof ret.userId !== 'object') {
+          ret.userId = (ret.userId as mongoose.Types.ObjectId).toString();
+        }
         delete ret.__v;
         return ret;
       },

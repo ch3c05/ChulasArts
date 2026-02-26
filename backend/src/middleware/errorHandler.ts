@@ -17,7 +17,7 @@ export function errorHandler(
   req: Request,
   res: Response,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  next: NextFunction
+  _next: NextFunction
 ): void {
   // Log error for debugging
   console.error('Error:', {
@@ -89,7 +89,7 @@ export function notFoundHandler(
   req: Request,
   res: Response,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  next: NextFunction
+  _next: NextFunction
 ): void {
   res.status(404).json({
     error: 'Route not found',

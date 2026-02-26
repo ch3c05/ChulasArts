@@ -30,12 +30,22 @@ const bookmarkSchema = new Schema<IBookmark>(
   {
     timestamps: { createdAt: true, updatedAt: false },
     toJSON: {
-      transform: (_doc, ret) => {
-        ret._id = ret._id.toString();
-        ret.userId = ret.userId.toString();
-        ret.photoId = ret.photoId.toString();
-        delete ret.__v;
-        return ret;
+      transform: (_doc: Document, ret: Record<string, unknown>) => {
+        return {
+          _id:
+            ret._id && typeof ret._id !== 'string'
+              ? (ret._id as mongoose.Types.ObjectId).toString()
+              : ret._id,
+          userId:
+            ret.userId && typeof ret.userId !== 'object'
+              ? (ret.userId as mongoose.Types.ObjectId).toString()
+              : ret.userId,
+          photoId:
+            ret.photoId && typeof ret.photoId !== 'object'
+              ? (ret.photoId as mongoose.Types.ObjectId).toString()
+              : ret.photoId,
+          createdAt: ret.createdAt,
+        };
       },
     },
   }

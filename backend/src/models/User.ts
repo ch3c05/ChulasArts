@@ -26,7 +26,6 @@ const userSchema = new Schema<IUser>(
       unique: true,
       lowercase: true,
       trim: true,
-      index: true,
     },
     password: {
       type: String,
@@ -58,8 +57,8 @@ const userSchema = new Schema<IUser>(
   {
     timestamps: true,
     toJSON: {
-      transform: (_doc, ret: any) => {
-        ret._id = ret._id.toString();
+      transform: (_doc: Document, ret: Record<string, unknown>) => {
+        ret._id = (ret._id as mongoose.Types.ObjectId).toString();
         delete ret.password;
         delete ret.__v;
         return ret;
@@ -69,7 +68,7 @@ const userSchema = new Schema<IUser>(
 );
 
 // Indexes
-userSchema.index({ email: 1 }, { unique: true });
+// Note: email index is created automatically via unique: true in schema
 userSchema.index({ createdAt: -1 });
 
 export const User: Model<IUser> = mongoose.model<IUser>('User', userSchema);

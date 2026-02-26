@@ -142,8 +142,8 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await apiClient.patch('/users/me', data);
-          const user = response.data.data;
+          const response = await apiClient.patch('/users/profile', data);
+          const user = response.data.data.user;
 
           set({
             user,

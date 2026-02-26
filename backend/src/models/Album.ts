@@ -58,11 +58,15 @@ const albumSchema = new Schema<IAlbum>(
   {
     timestamps: true,
     toJSON: {
-      transform: (_doc, ret) => {
-        ret._id = ret._id.toString();
-        ret.userId = ret.userId.toString();
-        if (ret.coverPhotoId) {
-          ret.coverPhotoId = ret.coverPhotoId.toString();
+      transform: (_doc: Document, ret: Record<string, unknown>) => {
+        if (ret._id && typeof ret._id !== 'string') {
+          ret._id = (ret._id as mongoose.Types.ObjectId).toString();
+        }
+        if (ret.userId && typeof ret.userId !== 'object') {
+          ret.userId = (ret.userId as mongoose.Types.ObjectId).toString();
+        }
+        if (ret.coverPhotoId && typeof ret.coverPhotoId !== 'object') {
+          ret.coverPhotoId = (ret.coverPhotoId as mongoose.Types.ObjectId).toString();
         }
         delete ret.__v;
         return ret;

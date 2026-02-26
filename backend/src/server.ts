@@ -5,13 +5,21 @@
  * Connects to MongoDB and starts the server
  */
 
-// Load environment variables FIRST
+// Load environment variables FIRST (before any other imports)
 import dotenv from 'dotenv';
-dotenv.config();
+dotenv.config(); // Loads from backend/.env by default
+
+// Debug: Verify Azure credentials loaded
+if (process.env.AZURE_STORAGE_CONNECTION_STRING) {
+  console.log('🔑 Azure Storage: Credentials loaded ✓');
+} else {
+  console.error('❌ Azure Storage: AZURE_STORAGE_CONNECTION_STRING not found in .env');
+}
 
 import express, { Application } from 'express';
 import cookieParser from 'cookie-parser';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
+import { initializeAzureStorage } from './config/azure.js';
 import { corsMiddleware } from './config/cors.js';
 import { securityMiddleware } from './middleware/security.js';
 import { getLogger } from './middleware/logger.js';
@@ -69,6 +77,11 @@ async function startServer(): Promise<void> {
     console.log('Connecting to MongoDB...');
     await connectDatabase();
     console.log('✓ MongoDB connected');
+
+    // Initialize Azure Storage containers
+    console.log('Initializing Azure Storage...');
+    await initializeAzureStorage();
+    console.log('✓ Azure Storage initialized');
 
     // Create Express app
     const app = createApp();

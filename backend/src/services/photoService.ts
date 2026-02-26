@@ -3,11 +3,11 @@
  * Business logic for photo management with Azure Blob Storage integration
  */
 
-import { Photo } from '../models/Photo';
-import { Album } from '../models/Album';
-import { NotFoundError, ForbiddenError, BadRequestError } from '../utils/errors';
-import { uploadImageToAzure, deleteImageFromAzure } from './azureService';
-import { processImage, getImageMetadata, validateImage } from './imageService';
+import { Photo, IPhoto } from '../models/Photo.js';
+import { Album } from '../models/Album.js';
+import { NotFoundError, ForbiddenError, BadRequestError } from '../utils/errors.js';
+import { uploadImageToAzure, deleteImageFromAzure } from './azureService.js';
+import { processImage, getImageMetadata, validateImage } from './imageService.js';
 
 /**
  * Upload a new photo to album
@@ -32,7 +32,7 @@ export async function uploadPhoto(
       iso?: number;
     };
   }
-): Promise<any> {
+): Promise<IPhoto> {
   // Verify album exists and user owns it
   const album = await Album.findById(albumId);
   if (!album) {
@@ -91,6 +91,11 @@ export async function uploadPhoto(
   // Increment album photo count
   await Album.findByIdAndUpdate(albumId, { $inc: { photoCount: 1 } });
 
+  // Set as cover photo if album doesn't have one
+  if (!album.coverPhotoId) {
+    await Album.findByIdAndUpdate(albumId, { coverPhotoId: photo._id });
+  }
+
   return photo;
 }
 
@@ -101,7 +106,10 @@ export async function getAlbumPhotos(
   albumId: string,
   page: number = 1,
   limit: number = 24
-): Promise<{ photos: any[]; pagination: any }> {
+): Promise<{
+  photos: IPhoto[];
+  pagination: { page: number; limit: number; total: number; hasMore: boolean };
+}> {
   const album = await Album.findById(albumId);
   if (!album) {
     throw new NotFoundError('Album not found');
@@ -110,7 +118,7 @@ export async function getAlbumPhotos(
   const skip = (page - 1) * limit;
 
   const [photos, total] = await Promise.all([
-    Photo.find({ albumId }).sort({ sortOrder: 1, createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Photo.find({ albumId }).sort({ sortOrder: 1, createdAt: -1 }).skip(skip).limit(limit),
     Photo.countDocuments({ albumId }),
   ]);
 
@@ -128,8 +136,8 @@ export async function getAlbumPhotos(
 /**
  * Get single photo by ID
  */
-export async function getPhotoById(photoId: string): Promise<any> {
-  const photo = await Photo.findById(photoId).lean();
+export async function getPhotoById(photoId: string): Promise<IPhoto> {
+  const photo = await Photo.findById(photoId);
   if (!photo) {
     throw new NotFoundError('Photo not found');
   }
@@ -162,7 +170,7 @@ export async function updatePhoto(
       iso?: number;
     };
   }
-): Promise<any> {
+): Promise<IPhoto> {
   const photo = await Photo.findById(photoId);
   if (!photo) {
     throw new NotFoundError('Photo not found');
@@ -172,7 +180,7 @@ export async function updatePhoto(
   }
 
   // Update allowed fields
-  const updateFields: any = {};
+  const updateFields: Record<string, unknown> = {};
   if (data.title !== undefined) updateFields.title = data.title;
   if (data.description !== undefined) updateFields.description = data.description;
   if (data.tags !== undefined) updateFields.tags = data.tags;
@@ -188,7 +196,10 @@ export async function updatePhoto(
     updateFields.shutterSpeed = data.metadata.shutterSpeed;
   if (data.metadata?.iso !== undefined) updateFields.iso = data.metadata.iso;
 
-  const updatedPhoto = await Photo.findByIdAndUpdate(photoId, updateFields, { new: true }).lean();
+  const updatedPhoto = await Photo.findByIdAndUpdate(photoId, updateFields, { new: true });
+  if (!updatedPhoto) {
+    throw new NotFoundError('Photo not found after update');
+  }
 
   return updatedPhoto;
 }
@@ -219,6 +230,15 @@ export async function deletePhoto(photoId: string, userId: string): Promise<void
 
   // Decrement album photo count
   await Album.findByIdAndUpdate(photo.albumId, { $inc: { photoCount: -1 } });
+
+  // If this was the cover photo, find another random photo to use as cover
+  const album = await Album.findById(photo.albumId);
+  if (album && album.coverPhotoId?.toString() === photoId) {
+    const randomPhoto = await Photo.findOne({ albumId: photo.albumId });
+    await Album.findByIdAndUpdate(photo.albumId, {
+      coverPhotoId: randomPhoto ? randomPhoto._id : null,
+    });
+  }
 }
 
 /**
@@ -259,7 +279,7 @@ export async function publishPhoto(
   photoId: string,
   userId: string,
   published: boolean
-): Promise<any> {
+): Promise<IPhoto> {
   const photo = await Photo.findById(photoId);
   if (!photo) {
     throw new NotFoundError('Photo not found');
@@ -268,7 +288,10 @@ export async function publishPhoto(
     throw new ForbiddenError('You do not own this photo');
   }
 
-  const updatedPhoto = await Photo.findByIdAndUpdate(photoId, { published }, { new: true }).lean();
+  const updatedPhoto = await Photo.findByIdAndUpdate(photoId, { published }, { new: true });
+  if (!updatedPhoto) {
+    throw new NotFoundError('Photo not found after update');
+  }
 
   return updatedPhoto;
 }

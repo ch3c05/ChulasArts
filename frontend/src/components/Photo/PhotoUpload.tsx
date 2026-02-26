@@ -1,9 +1,24 @@
 /**
  * PhotoUpload Component
- * Drag-and-drop photo upload with previews and progress
+ * Drag-and-drop photo upload with previews and progress using MUI
  */
 
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
+import {
+  Box,
+  Button,
+  Typography,
+  LinearProgress,
+  Paper,
+  IconButton,
+  Alert,
+  Stack,
+} from '@mui/material';
+import {
+  CloudUpload as CloudUploadIcon,
+  Clear as ClearIcon,
+  Delete as DeleteIcon,
+} from '@mui/icons-material';
 import { usePhotoStore } from '../../stores/photoStore';
 
 interface PhotoUploadProps {
@@ -79,191 +94,164 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({ albumId, onUploadCompl
         onUploadComplete();
       }
     } catch (err) {
-      console.error('Upload error:', err);
+      // Error handled by upload progress UI
     }
   };
 
   return (
-    <div style={{ marginBottom: '30px' }}>
+    <Box>
       {/* Drop zone */}
-      <div
+      <Paper
+        elevation={isDragging ? 8 : 1}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        style={{
-          border: `2px dashed ${isDragging ? '#007bff' : '#ccc'}`,
-          borderRadius: '8px',
-          padding: '40px 20px',
-          textAlign: 'center',
-          backgroundColor: isDragging ? '#f0f8ff' : '#fafafa',
+        sx={{
+          p: 4,
+          border: 2,
+          borderStyle: 'dashed',
+          borderColor: isDragging ? 'primary.main' : 'divider',
+          bgcolor: isDragging ? 'action.hover' : 'background.paper',
           cursor: 'pointer',
-          transition: 'all 0.3s',
+          transition: 'all 0.2s',
+          textAlign: 'center',
+          '&:hover': {
+            borderColor: 'primary.main',
+            bgcolor: 'action.hover',
+          },
         }}
       >
-        <div style={{ fontSize: '48px', marginBottom: '10px' }}>📸</div>
-        <p style={{ margin: '0 0 10px', fontSize: '16px', fontWeight: 500 }}>
+        <CloudUploadIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+        <Typography variant="h6" gutterBottom sx={{ color: 'text.primary' }}>
           Drag & drop photos here
-        </p>
-        <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
           or click to browse (JPEG, PNG, WebP, GIF, TIFF)
-        </p>
-        <input
+        </Typography>
+        <Box
+          component="input"
           ref={fileInputRef}
           type="file"
           accept="image/*"
           multiple
           onChange={handleFileSelect}
-          style={{ display: 'none' }}
+          sx={{ display: 'none' }}
+          aria-label="Select photos to upload"
         />
-      </div>
+      </Paper>
 
       {/* Error message */}
       {error && (
-        <div
-          style={{
-            marginTop: '15px',
-            padding: '10px 15px',
-            backgroundColor: '#fee',
-            border: '1px solid #fcc',
-            borderRadius: '4px',
-            color: '#c33',
-          }}
-        >
+        <Alert severity="error" sx={{ mt: 2 }}>
           {error}
-        </div>
+        </Alert>
       )}
 
       {/* Preview grid */}
       {previews.length > 0 && (
-        <div style={{ marginTop: '20px' }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '15px',
-            }}
+        <Box sx={{ mt: 3 }}>
+          <Box
+            sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}
           >
-            <h3 style={{ margin: 0 }}>
+            <Typography variant="h6" sx={{ color: 'text.primary' }}>
               {previews.length} photo{previews.length !== 1 ? 's' : ''} ready to upload
-            </h3>
-            <div>
-              <button
+            </Typography>
+            <Stack direction="row" spacing={1}>
+              <Button
                 onClick={() => {
                   previews.forEach((p) => URL.revokeObjectURL(p.url));
                   setPreviews([]);
                 }}
-                style={{
-                  padding: '8px 16px',
-                  marginRight: '10px',
-                  border: '1px solid #ccc',
-                  borderRadius: '4px',
-                  backgroundColor: 'white',
-                  cursor: 'pointer',
-                }}
+                variant="outlined"
                 disabled={isLoading}
+                startIcon={<ClearIcon />}
               >
                 Clear All
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleUpload}
-                style={{
-                  padding: '8px 16px',
-                  border: 'none',
-                  borderRadius: '4px',
-                  backgroundColor: '#007bff',
-                  color: 'white',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  opacity: isLoading ? 0.6 : 1,
-                }}
+                variant="contained"
                 disabled={isLoading}
+                startIcon={<CloudUploadIcon />}
               >
                 {isLoading ? 'Uploading...' : 'Upload All'}
-              </button>
-            </div>
-          </div>
+              </Button>
+            </Stack>
+          </Box>
 
-          <div
-            style={{
+          <Box
+            sx={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-              gap: '15px',
+              gridTemplateColumns: {
+                xs: 'repeat(2, 1fr)',
+                sm: 'repeat(3, 1fr)',
+                md: 'repeat(4, 1fr)',
+                lg: 'repeat(6, 1fr)',
+              },
+              gap: 2,
             }}
           >
             {previews.map((preview, index) => (
-              <div
+              <Paper
                 key={index}
-                style={{
+                elevation={2}
+                sx={{
                   position: 'relative',
-                  aspectRatio: '1',
-                  borderRadius: '8px',
+                  paddingTop: '100%', // 1:1 aspect ratio
                   overflow: 'hidden',
-                  border: '1px solid #ddd',
                 }}
               >
-                <img
+                <Box
+                  component="img"
                   src={preview.url}
                   alt={preview.file.name}
-                  style={{
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
                   }}
                 />
                 {!isLoading && (
-                  <button
+                  <IconButton
                     onClick={(e) => {
                       e.stopPropagation();
                       removePreview(index);
                     }}
-                    style={{
+                    size="small"
+                    aria-label="Remove photo"
+                    sx={{
                       position: 'absolute',
-                      top: '5px',
-                      right: '5px',
-                      width: '24px',
-                      height: '24px',
-                      border: 'none',
-                      borderRadius: '50%',
-                      backgroundColor: 'rgba(0,0,0,0.6)',
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontSize: '16px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
+                      top: 4,
+                      right: 4,
+                      bgcolor: 'background.paper',
+                      '&:hover': { bgcolor: 'error.light', color: 'error.contrastText' },
                     }}
                   >
-                    ×
-                  </button>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
                 )}
                 {/* Progress bar */}
                 {uploadProgress[preview.file.name] !== undefined && (
-                  <div
-                    style={{
+                  <LinearProgress
+                    variant="determinate"
+                    value={uploadProgress[preview.file.name]}
+                    sx={{
                       position: 'absolute',
                       bottom: 0,
                       left: 0,
                       right: 0,
-                      height: '4px',
-                      backgroundColor: 'rgba(0,0,0,0.3)',
                     }}
-                  >
-                    <div
-                      style={{
-                        height: '100%',
-                        width: `${uploadProgress[preview.file.name]}%`,
-                        backgroundColor: '#28a745',
-                        transition: 'width 0.3s',
-                      }}
-                    />
-                  </div>
+                  />
                 )}
-              </div>
+              </Paper>
             ))}
-          </div>
-        </div>
+          </Box>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 };

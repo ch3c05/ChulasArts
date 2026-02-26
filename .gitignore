@@ -37,6 +37,7 @@ logs/
 # Temporary files
 *.tmp
 .cache/
+cookies.txt
 
 # Azure
 .azurite/

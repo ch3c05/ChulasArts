@@ -69,6 +69,7 @@ export function useAuth() {
     login: handleLogin,
     signup: handleSignup,
     logout: handleLogout,
+    getCurrentUser,
     updateProfile: handleUpdateProfile,
     clearError,
   };

@@ -37,8 +37,7 @@ describe('Example Backend Test Suite', () => {
 
       expect(user).toBeDefined();
       expect(user.email).toBe('test@example.com');
-      expect(user.username).toBe('testuser');
-      expect(user.displayName).toBe('Test User');
+      expect(user.name).toBe('Test User');
     });
 
     it('should enforce unique email constraint', async () => {

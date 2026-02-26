@@ -44,10 +44,11 @@ router.post(
     body('published').optional().isBoolean().withMessage('Published must be boolean'),
     validate,
   ],
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: 'No photo file provided' });
+        res.status(400).json({ error: 'No photo file provided' });
+        return;
       }
 
       const userId = req.user!.userId;

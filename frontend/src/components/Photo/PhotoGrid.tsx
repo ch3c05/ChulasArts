@@ -1,216 +1,243 @@
 /**
  * PhotoGrid Component
- * Masonry-style photo grid with lazy loading and interactions
+ * Masonry-style photo grid with lazy loading and interactions using MUI
  */
 
 import React from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
+import { Image as ImageIcon } from '@mui/icons-material';
 import { usePhotoStore } from '../../stores/photoStore';
-
-interface Photo {
-  _id: string;
-  albumId: string;
-  userId: string;
-  title: string;
-  description?: string;
-  originalUrl: string;
-  mediumUrl: string;
-  thumbnailUrl: string;
-  width: number;
-  height: number;
-  published: boolean;
-  likeCount: number;
-  viewCount: number;
-  createdAt: Date;
-}
+import { useSocialStore } from '../../stores/socialStore';
+import { useAuthStore } from '../../stores/authStore';
+import ShareModal from '../Social/ShareModal';
+import { PhotoCard, type PhotoWithUser } from './PhotoCard';
 
 interface PhotoGridProps {
-  photos: Photo[];
+  photos: PhotoWithUser[];
   isOwner: boolean;
-  onPhotoClick?: (photo: Photo) => void;
+  isPublic?: boolean;
+  onPhotoClick?: (photo: PhotoWithUser) => void;
   onPhotoDelete?: (photoId: string) => void;
+  onPhotoEdit?: (photo: PhotoWithUser) => void;
 }
 
 export const PhotoGrid: React.FC<PhotoGridProps> = ({
   photos,
   isOwner,
+  isPublic = false,
   onPhotoClick,
   onPhotoDelete,
+  onPhotoEdit,
 }) => {
   const { deletePhoto, isLoading } = usePhotoStore();
+  const { loadSocialStatus, setLikeCounts, setBookmarkCounts } = useSocialStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [photoToDelete, setPhotoToDelete] = React.useState<string | null>(null);
+  const [shareModalOpen, setShareModalOpen] = React.useState(false);
+  const [photoToShare, setPhotoToShare] = React.useState<PhotoWithUser | null>(null);
 
-  const handleDelete = async (e: React.MouseEvent, photoId: string) => {
-    e.stopPropagation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
 
-    if (window.confirm('Are you sure you want to delete this photo?')) {
-      try {
-        await deletePhoto(photoId);
-        if (onPhotoDelete) {
-          onPhotoDelete(photoId);
-        }
-      } catch (err) {
-        console.error('Delete error:', err);
+  // Load social status for all photos when grid mounts or photos change
+  React.useEffect(() => {
+    if (photos.length > 0) {
+      const photoIds = photos.map((p) => p._id);
+      if (isAuthenticated) {
+        loadSocialStatus(photoIds);
       }
+
+      // Initialize counts from photo data
+      const likeCounts: Record<string, number> = {};
+      const bookmarkCounts: Record<string, number> = {};
+      photos.forEach((photo) => {
+        likeCounts[photo._id] = photo.likeCount;
+        bookmarkCounts[photo._id] = photo.bookmarkCount;
+      });
+      setLikeCounts(likeCounts);
+      setBookmarkCounts(bookmarkCounts);
     }
+  }, [photos, isAuthenticated, loadSocialStatus, setLikeCounts, setBookmarkCounts]);
+
+  const handleDeleteClick = (e: React.MouseEvent, photoId: string) => {
+    e.stopPropagation();
+    setPhotoToDelete(photoId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!photoToDelete) return;
+
+    try {
+      await deletePhoto(photoToDelete);
+      if (onPhotoDelete) {
+        onPhotoDelete(photoToDelete);
+      }
+      setDeleteDialogOpen(false);
+      setPhotoToDelete(null);
+    } catch (err) {
+      // Error handled by parent component
+    }
+  };
+
+  const handleShare = (e: React.MouseEvent, photo: PhotoWithUser) => {
+    e.stopPropagation();
+    setPhotoToShare(photo);
+    setShareModalOpen(true);
+  };
+
+  const handleDownload = async (e: React.MouseEvent, photo: PhotoWithUser) => {
+    e.stopPropagation();
+    try {
+      const imageUrl = isPublic
+        ? `/api/images/public/${photo._id}/original`
+        : `/api/images/${photo._id}/original`;
+
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${photo.title}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      // Download failed silently
+    }
+  };
+
+  // Layout photos into rows with same height but varying widths
+  const layoutPhotosInRows = () => {
+    const rows: PhotoWithUser[][] = [];
+
+    // Responsive columns based on breakpoints
+    let photosPerRow: number;
+
+    if (isMobile) {
+      photosPerRow = 1;
+    } else if (isTablet) {
+      photosPerRow = 3;
+    } else {
+      photosPerRow = 4;
+    }
+
+    // Create fixed-column rows
+    for (let i = 0; i < photos.length; i += photosPerRow) {
+      const row = photos.slice(i, i + photosPerRow);
+      rows.push(row);
+    }
+
+    return rows;
   };
 
   if (photos.length === 0) {
     return (
-      <div
-        style={{
+      <Box
+        sx={{
           textAlign: 'center',
-          padding: '60px 20px',
-          color: '#999',
+          py: 8,
+          px: 2,
         }}
       >
-        <div style={{ fontSize: '64px', marginBottom: '20px' }}>📷</div>
-        <p style={{ fontSize: '18px', margin: 0 }}>No photos yet</p>
+        <ImageIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
+        <Typography variant="h6" color="text.secondary" gutterBottom>
+          No photos yet
+        </Typography>
         {isOwner && (
-          <p style={{ fontSize: '14px', marginTop: '10px' }}>Upload photos using the form above</p>
+          <Typography variant="body2" color="text.secondary">
+            Upload photos using the form above
+          </Typography>
         )}
-      </div>
+      </Box>
     );
   }
 
+  const photoRows = layoutPhotosInRows();
+
   return (
-    <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '20px',
-        }}
-      >
-        <h2 style={{ margin: 0 }}>Photos ({photos.length})</h2>
-      </div>
+    <Box>
+      {/* Grid layout with rows */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {photoRows.map((row, rowIndex) => {
+          // Hide single-photo rows on tablet/desktop
+          if (!isMobile && row.length === 1) {
+            return null;
+          }
 
-      {/* Grid layout */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-          gap: '20px',
-        }}
-      >
-        {photos.map((photo) => (
-          <div
-            key={photo._id}
-            onClick={() => onPhotoClick && onPhotoClick(photo)}
-            style={{
-              position: 'relative',
-              aspectRatio: `${photo.width} / ${photo.height}`,
-              borderRadius: '8px',
-              overflow: 'hidden',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              transition: 'transform 0.2s, box-shadow 0.2s',
-              backgroundColor: '#f0f0f0',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-            }}
-          >
-            <img
-              src={photo.mediumUrl}
-              alt={photo.title}
-              loading="lazy"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
-            />
+          const totalAspectRatio = row.reduce((sum, photo) => sum + photo.width / photo.height, 0);
 
-            {/* Overlay on hover */}
-            <div
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)',
-                opacity: 0,
-                transition: 'opacity 0.2s',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                padding: '15px',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.opacity = '1';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.opacity = '0';
-              }}
-            >
-              {/* Title and info */}
-              <div>
-                <h3
-                  style={{
-                    margin: '0 0 5px',
-                    color: 'white',
-                    fontSize: '16px',
-                    fontWeight: 600,
-                  }}
-                >
-                  {photo.title}
-                </h3>
-                <div style={{ display: 'flex', gap: '15px', fontSize: '12px', color: 'white' }}>
-                  <span>❤️ {photo.likeCount}</span>
-                  <span>👁️ {photo.viewCount}</span>
-                </div>
-              </div>
+          return (
+            <Box key={rowIndex} sx={{ display: 'flex', gap: 3 }}>
+              {row.map((photo) => {
+                const aspectRatio = photo.width / photo.height;
+                const widthPercentage = (aspectRatio / totalAspectRatio) * 100;
 
-              {/* Actions (owner only) */}
-              {isOwner && (
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    onClick={(e) => handleDelete(e, photo._id)}
-                    disabled={isLoading}
-                    style={{
-                      padding: '6px 12px',
-                      border: 'none',
-                      borderRadius: '4px',
-                      backgroundColor: 'rgba(220, 53, 69, 0.9)',
-                      color: 'white',
-                      fontSize: '12px',
-                      cursor: isLoading ? 'not-allowed' : 'pointer',
-                      opacity: isLoading ? 0.6 : 1,
+                return (
+                  <PhotoCard
+                    key={photo._id}
+                    photo={photo}
+                    widthPercentage={widthPercentage}
+                    isOwner={isOwner}
+                    isPublic={isPublic}
+                    isLoading={isLoading}
+                    onClick={() => onPhotoClick && onPhotoClick(photo)}
+                    onEdit={(e) => {
+                      e.stopPropagation();
+                      onPhotoEdit && onPhotoEdit(photo);
                     }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              )}
-            </div>
+                    onDelete={(e) => handleDeleteClick(e, photo._id)}
+                    onShare={(e) => handleShare(e, photo)}
+                    onDownload={(e) => handleDownload(e, photo)}
+                  />
+                );
+              })}
+            </Box>
+          );
+        })}
+      </Box>
 
-            {/* Published indicator */}
-            {!photo.published && isOwner && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '10px',
-                  right: '10px',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  backgroundColor: 'rgba(255, 193, 7, 0.9)',
-                  color: 'white',
-                  fontSize: '11px',
-                  fontWeight: 600,
-                }}
-              >
-                DRAFT
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Delete Photo?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this photo? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained" disabled={isLoading}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Share Modal */}
+      {photoToShare && (
+        <ShareModal
+          open={shareModalOpen}
+          onClose={() => {
+            setShareModalOpen(false);
+            setPhotoToShare(null);
+          }}
+          photoUrl={`/gallery?photo=${photoToShare._id}`}
+          photoTitle={photoToShare.title}
+        />
+      )}
+    </Box>
   );
 };

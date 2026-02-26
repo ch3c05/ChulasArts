@@ -6,6 +6,17 @@
 import { create } from 'zustand';
 import * as photoService from '../services/photoService';
 
+interface PhotoMetadata {
+  capturedAt?: string;
+  location?: string;
+  camera?: string;
+  lens?: string;
+  focalLength?: number;
+  aperture?: string;
+  shutterSpeed?: string;
+  iso?: number;
+}
+
 interface Photo {
   _id: string;
   albumId: string;
@@ -53,7 +64,7 @@ interface PhotoStore {
       description?: string;
       tags?: string[];
       published?: boolean;
-      metadata?: any;
+      metadata?: PhotoMetadata;
     }
   ) => Promise<Photo>;
   uploadMultiplePhotos: (
@@ -75,7 +86,7 @@ interface PhotoStore {
       description?: string;
       tags?: string[];
       published?: boolean;
-      metadata?: any;
+      metadata?: PhotoMetadata;
     }
   ) => Promise<void>;
   deletePhoto: (photoId: string) => Promise<void>;
@@ -126,8 +137,11 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       }, 2000);
 
       return photo;
-    } catch (error: any) {
-      set({ error: error.message || 'Failed to upload photo', isLoading: false });
+    } catch (error: unknown) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to upload photo',
+        isLoading: false,
+      });
       throw error;
     }
   },
@@ -161,8 +175,11 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
       }, 2000);
 
       return uploadedPhotos;
-    } catch (error: any) {
-      set({ error: error.message || 'Failed to upload photos', isLoading: false });
+    } catch (error: unknown) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to upload photos',
+        isLoading: false,
+      });
       throw error;
     }
   },
@@ -173,8 +190,11 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
     try {
       const result = await photoService.fetchAlbumPhotos(albumId, page, limit);
       set({ photos: result.data, isLoading: false });
-    } catch (error: any) {
-      set({ error: error.message || 'Failed to fetch photos', isLoading: false });
+    } catch (error: unknown) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to fetch photos',
+        isLoading: false,
+      });
     }
   },
 
@@ -184,8 +204,11 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
     try {
       const photo = await photoService.getPhotoById(photoId);
       set({ currentPhoto: photo, isLoading: false });
-    } catch (error: any) {
-      set({ error: error.message || 'Failed to fetch photo', isLoading: false });
+    } catch (error: unknown) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to fetch photo',
+        isLoading: false,
+      });
     }
   },
 
@@ -201,8 +224,11 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
         currentPhoto: state.currentPhoto?._id === photoId ? updatedPhoto : state.currentPhoto,
         isLoading: false,
       }));
-    } catch (error: any) {
-      set({ error: error.message || 'Failed to update photo', isLoading: false });
+    } catch (error: unknown) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to update photo',
+        isLoading: false,
+      });
       throw error;
     }
   },
@@ -219,8 +245,11 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
         currentPhoto: state.currentPhoto?._id === photoId ? null : state.currentPhoto,
         isLoading: false,
       }));
-    } catch (error: any) {
-      set({ error: error.message || 'Failed to delete photo', isLoading: false });
+    } catch (error: unknown) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to delete photo',
+        isLoading: false,
+      });
       throw error;
     }
   },
@@ -237,9 +266,12 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
 
     try {
       await photoService.reorderPhotos(albumId, photoIds);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Revert on error
-      set({ photos: previousPhotos, error: error.message || 'Failed to reorder photos' });
+      set({
+        photos: previousPhotos,
+        error: error instanceof Error ? error.message : 'Failed to reorder photos',
+      });
       throw error;
     }
   },
@@ -256,8 +288,11 @@ export const usePhotoStore = create<PhotoStore>((set, get) => ({
         currentPhoto: state.currentPhoto?._id === photoId ? updatedPhoto : state.currentPhoto,
         isLoading: false,
       }));
-    } catch (error: any) {
-      set({ error: error.message || 'Failed to publish photo', isLoading: false });
+    } catch (error: unknown) {
+      set({
+        error: error instanceof Error ? error.message : 'Failed to publish photo',
+        isLoading: false,
+      });
       throw error;
     }
   },

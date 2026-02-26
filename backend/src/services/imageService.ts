@@ -24,6 +24,32 @@ export interface ImageMetadata {
  * @param buffer - Original image buffer
  * @returns Processed images in 3 sizes
  */
+/**
+ * Resize image to specific dimensions
+ * @param buffer - Original image buffer
+ * @param width - Target width
+ * @param height - Target height
+ * @returns Resized image buffer
+ */
+export async function resizeImage(buffer: Buffer, width: number, height: number): Promise<Buffer> {
+  try {
+    return await sharp(buffer)
+      .resize(width, height, {
+        fit: 'cover',
+        position: 'center',
+      })
+      .jpeg({ quality: 90 })
+      .toBuffer();
+  } catch (error) {
+    throw new BadRequestError('Failed to resize image');
+  }
+}
+
+/**
+ * Process uploaded image into multiple sizes
+ * @param buffer - Original image buffer
+ * @returns Processed images in 3 sizes
+ */
 export async function processImage(buffer: Buffer): Promise<ImageSizes> {
   try {
     // Get image metadata

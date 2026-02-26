@@ -48,10 +48,19 @@ export async function uploadPhoto(
     description?: string;
     tags?: string[];
     published?: boolean;
-    metadata?: any;
+    metadata?: {
+      capturedAt?: string;
+      location?: string;
+      camera?: string;
+      lens?: string;
+      focalLength?: number;
+      aperture?: string;
+      shutterSpeed?: string;
+      iso?: number;
+    };
   },
   onProgress?: (progress: number) => void
-): Promise<Photo> {
+) {
   const formData = new FormData();
   formData.append('photo', file);
 
@@ -109,7 +118,16 @@ export async function updatePhoto(
     description?: string;
     tags?: string[];
     published?: boolean;
-    metadata?: any;
+    metadata?: {
+      capturedAt?: string;
+      location?: string;
+      camera?: string;
+      lens?: string;
+      focalLength?: number;
+      aperture?: string;
+      shutterSpeed?: string;
+      iso?: number;
+    };
   }
 ): Promise<Photo> {
   const response = await api.patch(`/photos/${photoId}`, data);

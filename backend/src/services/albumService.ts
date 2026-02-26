@@ -3,6 +3,7 @@
  * Business logic for album CRUD operations
  */
 
+import mongoose from 'mongoose';
 import { Album, IAlbum } from '../models/Album.js';
 import { Photo } from '../models/Photo.js';
 import { User } from '../models/User.js';
@@ -82,7 +83,10 @@ export async function updateAlbum(
 
   // Update fields
   if (data.title !== undefined) album.title = data.title;
-  if (data.description !== undefined) album.description = data.description;
+  if (data.description !== undefined) {
+    // Allow empty string to clear description
+    album.description = data.description || undefined;
+  }
   if (data.published !== undefined) album.published = data.published;
   if (data.coverPhotoId !== undefined) {
     // Verify cover photo belongs to this album
@@ -92,7 +96,9 @@ export async function updateAlbum(
         throw new BadRequestError('Cover photo must belong to this album');
       }
     }
-    album.coverPhotoId = data.coverPhotoId as any;
+    album.coverPhotoId = data.coverPhotoId
+      ? new mongoose.Types.ObjectId(data.coverPhotoId)
+      : undefined;
   }
 
   await album.save();

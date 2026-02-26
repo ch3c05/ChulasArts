@@ -26,7 +26,11 @@ declare global {
  * Verifies JWT token from Authorization header or cookies
  * Attaches user info to req.user
  */
-export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function authenticate(
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): Promise<void> {
   try {
     // Try to get token from Authorization header
     let token = extractTokenFromHeader(req.headers.authorization);
@@ -65,9 +69,9 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
  * Attaches user info if token is present, but doesn't fail if missing
  * Useful for endpoints that behave differently for authenticated users
  */
-export async function optionalAuthenticate(
+export async function optionalAuth(
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
@@ -109,7 +113,7 @@ export async function optionalAuthenticate(
  * Must be used after authenticate() middleware
  */
 export function requireOwnership(resourceUserIdField: string = 'userId') {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) {
       throw new UnauthorizedError('Authentication required');
     }

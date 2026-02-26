@@ -13,7 +13,7 @@ import { ValidationError as AppValidationError } from '../utils/errors.js';
  * Validate request using express-validator
  * Checks for validation errors and throws if any exist
  */
-export function validate(req: Request, res: Response, next: NextFunction): void {
+export function validate(req: Request, _res: Response, next: NextFunction): void {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -37,7 +37,7 @@ export function validate(req: Request, res: Response, next: NextFunction): void 
  * @returns Middleware function
  */
 export function createValidationChain(validations: ValidationChain[]) {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _res: Response, next: NextFunction) => {
     // Run all validations
     await Promise.all(validations.map((validation) => validation.run(req)));
 

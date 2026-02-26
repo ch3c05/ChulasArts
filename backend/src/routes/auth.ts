@@ -10,6 +10,7 @@ import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validator';
 import { verifyToken } from '../utils/jwt';
 import { generateAccessToken } from '../utils/jwt';
+import { generateAvatarSignedUrl } from '../services/azureService.js';
 
 const router = Router();
 
@@ -55,12 +56,17 @@ router.post(
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
+      // Generate signed URL for avatar if it exists
+      const avatarUrl = user.avatarUrl
+        ? await generateAvatarSignedUrl(user.avatarUrl)
+        : user.avatarUrl;
+
       res.status(201).json({
         id: user._id,
         email: user.email,
         name: user.name,
         bio: user.bio,
-        avatarUrl: user.avatarUrl,
+        avatarUrl,
         createdAt: user.createdAt,
       });
     } catch (error) {
@@ -104,12 +110,17 @@ router.post(
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
+      // Generate signed URL for avatar if it exists
+      const avatarUrl = user.avatarUrl
+        ? await generateAvatarSignedUrl(user.avatarUrl)
+        : user.avatarUrl;
+
       res.status(200).json({
         id: user._id,
         email: user.email,
         name: user.name,
         bio: user.bio,
-        avatarUrl: user.avatarUrl,
+        avatarUrl,
         createdAt: user.createdAt,
       });
     } catch (error) {
@@ -151,12 +162,17 @@ router.get('/me', authenticate, async (req: Request, res: Response, next: NextFu
       return;
     }
 
+    // Generate signed URL for avatar if it exists
+    const avatarUrl = user.avatarUrl
+      ? await generateAvatarSignedUrl(user.avatarUrl)
+      : user.avatarUrl;
+
     res.status(200).json({
       id: user._id,
       email: user.email,
       name: user.name,
       bio: user.bio,
-      avatarUrl: user.avatarUrl,
+      avatarUrl,
       createdAt: user.createdAt,
     });
   } catch (error) {

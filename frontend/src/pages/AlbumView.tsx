@@ -5,22 +5,56 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import {
+  Container,
+  Box,
+  Typography,
+  Button,
+  TextField,
+  Switch,
+  FormControlLabel,
+  Paper,
+  IconButton,
+} from '@mui/material';
+import {
+  ArrowBack as ArrowBackIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Save as SaveIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
 import { useAlbumStore } from '../stores/albumStore';
 import { usePhotoStore } from '../stores/photoStore';
 import { useAuth } from '../hooks/useAuth';
 import { PhotoUpload } from '../components/Photo/PhotoUpload';
 import { PhotoGrid } from '../components/Photo/PhotoGrid';
+import { PhotoEditModal } from '../components/Photo/PhotoEditModal';
+import { PhotoDetailModal } from '../components/Photo/PhotoDetailModal';
+import { Loading } from '../components/UI/Loading';
+import { ErrorMessage } from '../components/UI/ErrorMessage';
+import { Header } from '../components/Layout/Header';
+import type { Photo } from '../../../shared/types/photo';
+
+interface EditingPhoto {
+  _id: string;
+  title: string;
+  description?: string;
+  tags: string[];
+  published: boolean;
+}
 
 export default function AlbumView() {
   const { albumId } = useParams<{ albumId: string }>();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const { currentAlbum, isLoading, error, fetchAlbum, updateAlbum, deleteAlbum } = useAlbumStore();
-  const { photos, fetchAlbumPhotos } = usePhotoStore();
+  const { photos, fetchAlbumPhotos, updatePhoto } = usePhotoStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editPublished, setEditPublished] = useState(false);
+  const [editingPhoto, setEditingPhoto] = useState<EditingPhoto | null>(null);
+  const [viewingPhoto, setViewingPhoto] = useState<Photo | null>(null);
 
   useEffect(() => {
     if (albumId) {
@@ -77,192 +111,186 @@ export default function AlbumView() {
   const isOwner = isAuthenticated && currentAlbum && user?.id === currentAlbum.userId;
 
   if (isLoading && !currentAlbum) {
-    return <div style={{ padding: '20px' }}>Loading album...</div>;
+    return <Loading message="Loading album..." />;
   }
 
   if (error) {
     return (
-      <div style={{ padding: '20px' }}>
-        <p style={{ color: '#c00' }}>Error: {error}</p>
-        <button onClick={handleBack}>← Back to Dashboard</button>
-      </div>
+      <Box sx={{ textAlign: 'center', py: 8 }}>
+        <ErrorMessage message={error} onRetry={() => albumId && fetchAlbum(albumId)} />
+        <Button startIcon={<ArrowBackIcon />} onClick={handleBack} sx={{ mt: 2 }}>
+          Back to Dashboard
+        </Button>
+      </Box>
     );
   }
 
   if (!currentAlbum) {
     return (
-      <div style={{ padding: '20px' }}>
-        <p>Album not found</p>
-        <button onClick={handleBack}>← Back to Dashboard</button>
-      </div>
+      <Box sx={{ textAlign: 'center', py: 8 }}>
+        <ErrorMessage message="Album not found" type="warning" />
+        <Button startIcon={<ArrowBackIcon />} onClick={handleBack} sx={{ mt: 2 }}>
+          Back to Dashboard
+        </Button>
+      </Box>
     );
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '30px' }}>
-        <button
-          onClick={handleBack}
-          style={{
-            marginBottom: '20px',
-            background: 'none',
-            border: 'none',
-            color: '#007bff',
-            cursor: 'pointer',
-            fontSize: '16px',
-          }}
-        >
-          ← Back to Dashboard
-        </button>
+    <>
+      <Header showSearch={false} showFilters={false} />
+      <Container maxWidth="xl" sx={{ py: 3 }}>
+        {/* Header */}
+        <Box sx={{ mb: 3 }}>
+          <Button startIcon={<ArrowBackIcon />} onClick={handleBack} sx={{ mb: 2 }}>
+            Back to Dashboard
+          </Button>
 
-        {isEditing ? (
-          <div>
-            <input
-              type="text"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              style={{
-                fontSize: '32px',
-                fontWeight: 'bold',
-                marginBottom: '10px',
-                width: '100%',
-                padding: '8px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-              }}
-            />
-            <textarea
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              rows={3}
-              style={{
-                width: '100%',
-                padding: '8px',
-                marginBottom: '10px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                fontSize: '16px',
-              }}
-            />
-            <label style={{ display: 'block', marginBottom: '15px' }}>
-              <input
-                type="checkbox"
-                checked={editPublished}
-                onChange={(e) => setEditPublished(e.target.checked)}
-                style={{ marginRight: '8px' }}
-              />
-              Published
-            </label>
-            <div>
-              <button
-                onClick={handleSave}
-                style={{
-                  padding: '8px 16px',
-                  marginRight: '10px',
-                  backgroundColor: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                Save
-              </button>
-              <button
-                onClick={handleCancel}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <div
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
+          {isEditing ? (
+            <Paper sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <TextField
+                  label="Album Title"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  fullWidth
+                />
+                <TextField
+                  label="Description"
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  multiline
+                  rows={3}
+                  fullWidth
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={editPublished}
+                      onChange={(e) => setEditPublished(e.target.checked)}
+                    />
+                  }
+                  label="Published"
+                />
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave}>
+                    Save
+                  </Button>
+                  <Button variant="outlined" startIcon={<CloseIcon />} onClick={handleCancel}>
+                    Cancel
+                  </Button>
+                </Box>
+              </Box>
+            </Paper>
+          ) : (
+            <Box
+              sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}
             >
-              <div>
-                <h1 style={{ fontSize: '32px', marginBottom: '10px' }}>{currentAlbum.title}</h1>
+              <Box>
+                <Typography variant="h4" gutterBottom sx={{ color: 'text.primary' }}>
+                  {currentAlbum.title}
+                </Typography>
                 {currentAlbum.description && (
-                  <p style={{ color: '#666', fontSize: '16px', marginBottom: '10px' }}>
+                  <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
                     {currentAlbum.description}
-                  </p>
+                  </Typography>
                 )}
-                <div style={{ color: '#999', fontSize: '14px' }}>
-                  {currentAlbum.photoCount} photos •{' '}
+                <Typography variant="body2" color="text.secondary">
+                  {currentAlbum.photoCount} {currentAlbum.photoCount === 1 ? 'photo' : 'photos'} •{' '}
                   {currentAlbum.published ? 'Published' : 'Draft'}
-                </div>
-              </div>
+                </Typography>
+              </Box>
 
               {isOwner && (
-                <div>
-                  <button
-                    onClick={handleEdit}
-                    style={{
-                      padding: '8px 16px',
-                      marginRight: '10px',
-                      backgroundColor: '#007bff',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                    }}
-                  >
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button variant="outlined" startIcon={<EditIcon />} onClick={handleEdit}>
                     Edit Album
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#dc3545',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Delete Album
-                  </button>
-                </div>
+                  </Button>
+                  <IconButton color="error" onClick={handleDelete} aria-label="Delete album">
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
               )}
-            </div>
-          </div>
-        )}
-      </div>
+            </Box>
+          )}
+        </Box>
 
-      {/* Photo Upload Section (Owner only) */}
-      {isOwner && albumId && (
-        <PhotoUpload
-          albumId={albumId}
-          onUploadComplete={() => {
-            fetchAlbum(albumId);
-            fetchAlbumPhotos(albumId);
+        {/* Photo Upload Section (Owner only) */}
+        {isOwner && albumId && (
+          <Box sx={{ mb: 4 }}>
+            <PhotoUpload
+              albumId={albumId}
+              onUploadComplete={() => {
+                fetchAlbum(albumId);
+                fetchAlbumPhotos(albumId);
+              }}
+            />
+          </Box>
+        )}
+
+        {/* Photo Grid */}
+        <PhotoGrid
+          photos={photos}
+          isOwner={!!isOwner}
+          onPhotoClick={(photo) => {
+            setViewingPhoto(photo);
+          }}
+          onPhotoEdit={(photo) => {
+            setEditingPhoto({
+              _id: photo._id,
+              title: photo.title,
+              description: photo.description,
+              tags: photo.tags || [],
+              published: photo.published,
+            });
+          }}
+          onPhotoDelete={() => {
+            if (albumId) {
+              fetchAlbum(albumId);
+            }
           }}
         />
-      )}
 
-      {/* Photo Grid */}
-      <PhotoGrid
-        photos={photos}
-        isOwner={!!isOwner}
-        onPhotoClick={(photo) => {
-          console.log('Photo clicked:', photo);
-          // TODO: Open photo detail modal/page
-        }}
-        onPhotoDelete={() => {
-          if (albumId) {
-            fetchAlbum(albumId);
-          }
-        }}
-      />
-    </div>
+        {/* Photo Edit Modal */}
+        {editingPhoto && (
+          <PhotoEditModal
+            photo={editingPhoto}
+            onClose={() => setEditingPhoto(null)}
+            onSave={async (photoId, data) => {
+              await updatePhoto(photoId, data);
+              setEditingPhoto(null);
+              if (albumId) {
+                fetchAlbum(albumId);
+                fetchAlbumPhotos(albumId);
+              }
+            }}
+          />
+        )}
+
+        {/* Photo Detail Modal */}
+        {viewingPhoto && (
+          <PhotoDetailModal
+            photo={viewingPhoto}
+            photos={photos}
+            isOwner={!!isOwner}
+            onClose={() => setViewingPhoto(null)}
+            onNavigate={(photoId) => {
+              const photo = photos.find((p) => p._id === photoId);
+              if (photo) {
+                setViewingPhoto(photo);
+              }
+            }}
+            onPublishToggle={async (photoId, published) => {
+              await updatePhoto(photoId, { published });
+              // Update the viewing photo state
+              const updatedPhoto = photos.find((p) => p._id === photoId);
+              if (updatedPhoto) {
+                setViewingPhoto({ ...updatedPhoto, published });
+              }
+            }}
+          />
+        )}
+      </Container>
+    </>
   );
 }
